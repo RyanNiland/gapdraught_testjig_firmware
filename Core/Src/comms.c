@@ -1,5 +1,6 @@
 #include "comms.h"
 #include "main.h"
+#include "cont_test.h"
 
 typedef struct{
 	uint8_t data[UART_RX_BUFFER_SIZE];
@@ -7,6 +8,7 @@ typedef struct{
 } RawMessage_t;
 
 uint8_t rxBuffer[UART_RX_BUFFER_SIZE];
+char txBuffer[UART_TX_BUFFER_SIZE];
 
 
 void StartCommsTask(void *argument) {
@@ -101,6 +103,16 @@ CommandType ParseCommand(uint8_t *buf, uint16_t len) {
 		result.cmd = TOGGLE_OUT_RELAYS;
 	else if (strcmp(cmd, "CMD:TOGGLE_VCC") == 0)
 			result.cmd = TOGGLE_VCC;
+	else if (strcmp(cmd, "CMD:READ_IN_PINS") == 0)
+		result.cmd = READ_IN_PINS;
+	else if (strcmp(cmd, "CMD:READ_IN_PINS") == 0)
+		result.cmd = TOGGLE_OUT_PWR_PIN;
+	else if (strcmp(cmd, "CMD:TOGGLE_OUT_PWR_PIN") == 0)
+		result.cmd = TOGGLE_OUT_GND_PIN;
+	else if (strcmp(cmd, "CMD:TOGGLE_OUT_A_PIN") == 0)
+		result.cmd = TOGGLE_OUT_A_PIN;
+	else if (strcmp(cmd, "CMD:TOGGLE_OUT_B_PIN") == 0)
+		result.cmd = TOGGLE_OUT_B_PIN;
 
 	// --- Debug LEDs ---
 	else if (strcmp(cmd, "CMD:DEBUG_R_ON") == 0)
@@ -139,7 +151,7 @@ void ProcessCommand(CommandType cmd)
 	switch(cmd)
 	{
 	case CMD_UNKNOWN:
-		UartRespond("[ERROR] UNKNOWN COMMAND");
+		UartRespond("[ERROR] UNKNOWN COMMAND\n");
 		break;
 	case CMD_CONT_T_START:
 		break;
@@ -148,24 +160,24 @@ void ProcessCommand(CommandType cmd)
 	case CMD_FLOW_CAL_START:
 		break;
 	case CMD_OPEN_TEMP_SOL_W:
-		UartRespond("[DEBUG] OPENING WATER SOL FOR 2s");
+		UartRespond("[DEBUG] OPENING WATER SOL FOR 2s\n");
 		HAL_GPIO_WritePin(W_SOL_EN_GPIO_Port, W_SOL_EN_Pin, GPIO_PIN_SET);
 		osDelay(pdMS_TO_TICKS(2000));
 		HAL_GPIO_WritePin(W_SOL_EN_GPIO_Port, W_SOL_EN_Pin, GPIO_PIN_RESET);
 		break;
 	case CMD_OPEN_TEMP_SOL_A:
-		UartRespond("[DEBUG] OPENING AIR SOL FOR 2s");
+		UartRespond("[DEBUG] OPENING AIR SOL FOR 2s\n");
 		HAL_GPIO_WritePin(A_SOL_EN_GPIO_Port, A_SOL_EN_Pin, GPIO_PIN_SET);
 		osDelay(pdMS_TO_TICKS(2000));
 		HAL_GPIO_WritePin(A_SOL_EN_GPIO_Port, A_SOL_EN_Pin, GPIO_PIN_RESET);
 		break;
 	case CMD_OPEN_SOL_D:
-		UartRespond("[DEBUG] OPENING DRAIN SOL");
-		HAL_GPIO_WritePin(A_SOL_EN_GPIO_Port, A_SOL_EN_Pin, GPIO_PIN_SET);
+		UartRespond("[DEBUG] OPENING DRAIN SOL\n");
+		HAL_GPIO_WritePin(D_SOL_EN_GPIO_Port, D_SOL_EN_Pin, GPIO_PIN_SET);
 		break;
 	case CMD_CLOSE_SOL_D:
-		UartRespond("[DEBUG] CLOSING DRAIN SOL");
-		HAL_GPIO_WritePin(A_SOL_EN_GPIO_Port, A_SOL_EN_Pin, GPIO_PIN_RESET);
+		UartRespond("[DEBUG] CLOSING DRAIN SOL\n");
+		HAL_GPIO_WritePin(D_SOL_EN_GPIO_Port, D_SOL_EN_Pin, GPIO_PIN_RESET);
 		break;
 	case CMD_RESTART_FM_COUNTER:
 		break;
@@ -182,19 +194,65 @@ void ProcessCommand(CommandType cmd)
 	case CMD_REPORT_PRESSURE_VALUES:
 		break;
 	case TOGGLE_IN_RELAYS:
-		UartRespond("[DEBUG] TOGGLING GAP IN RELAY");
+		UartRespond("[DEBUG] TOGGLING GAP IN RELAY\n");
 		HAL_GPIO_TogglePin(CONT_I_COMMS_RLY_GPIO_Port, CONT_I_COMMS_RLY_Pin);
 		break;
 	case TOGGLE_OUT_RELAYS:
-		UartRespond("[DEBUG] TOGGLING GAP OUT RELAYS");
-		HAL_GPIO_TogglePin(CONT_O_PWR_RLY_GPIO_Port, CONT_O_PWR_RLY_Pin);
-		HAL_GPIO_TogglePin(CONT_O_GND_RLY_GPIO_Port, CONT_O_GND_RLY_Pin);
-		HAL_GPIO_TogglePin(CONT_O_A_RLY_GPIO_Port, CONT_O_A_RLY_Pin);
-		HAL_GPIO_TogglePin(CONT_O_B_RLY_GPIO_Port, CONT_O_B_RLY_Pin);
+		UartRespond("[DEBUG] TOGGLING GAP OUT RELAYS\n");
+		HAL_GPIO_TogglePin(gap_wire[PWR].out_relay_port, gap_wire[PWR].out_relay_pin);
+		HAL_GPIO_TogglePin(gap_wire[GND].out_relay_port, gap_wire[GND].out_relay_pin);
+		HAL_GPIO_TogglePin(gap_wire[A].out_relay_port, gap_wire[A].out_relay_pin);
+		HAL_GPIO_TogglePin(gap_wire[B].out_relay_port, gap_wire[B].out_relay_pin);
 		break;
 	case TOGGLE_VCC:
-		UartRespond("[DEBUG] TOGGLING VCC");
+		UartRespond("[DEBUG] TOGGLING VCC\n");
 		HAL_GPIO_TogglePin(VCC_GPIO_Port, VCC_Pin);
+		break;
+	case READ_IN_PINS:
+		GPIO_PinState pin_level;
+		for(int i = 0; i < GAP_WIRE_NUMBER; i++){
+			pin_level = HAL_GPIO_ReadPin(gap_wire[i].in_port, gap_wire[i].in_pin);
+			snprintf(txBuffer, sizeof(txBuffer), "PIN:%s STATE:%s\n",
+					gap_wire[i].name,
+					state == GPIO_PIN_SET ? "HIGH" : "LOW");
+			UartRespond(txBuffer);
+			}
+			break;
+	case TOGGLE_OUT_PWR_PIN:
+		HAL_GPIO_TogglePin(gap_wire[PWR].out_port, gap_wire[PWR].out_pin);
+		GPIO_PinState state = HAL_GPIO_ReadPin(gap_wire[PWR].out_port,
+				gap_wire[PWR].out_pin);
+		snprintf(rxBuffer, sizeof(rxBuffer),
+				"[DEBUG] TOGGLING PWR OUT PIN -> %s\n",
+				state == GPIO_PIN_SET ? "HIGH" : "LOW");
+		UartRespond(rxBuffer);
+		break;
+	case TOGGLE_OUT_GND_PIN:
+		HAL_GPIO_TogglePin(gap_wire[GND].out_port, gap_wire[GND].out_pin);
+		GPIO_PinState state = HAL_GPIO_ReadPin(gap_wire[GND].out_port,
+				gap_wire[GND].out_pin);
+		snprintf(rxBuffer, sizeof(rxBuffer),
+				"[DEBUG] TOGGLING GND OUT PIN -> %s\n",
+				state == GPIO_PIN_SET ? "HIGH" : "LOW");
+		UartRespond(rxBuffer);
+		break;
+	case TOGGLE_OUT_A_PIN:
+		HAL_GPIO_TogglePin(gap_wire[A].out_port, gap_wire[A].out_pin);
+		GPIO_PinState state = HAL_GPIO_ReadPin(gap_wire[A].out_port,
+				gap_wire[A].out_pin);
+		snprintf(rxBuffer, sizeof(rxBuffer),
+				"[DEBUG] TOGGLING A OUT PIN -> %s\n",
+				state == GPIO_PIN_SET ? "HIGH" : "LOW");
+		UartRespond(rxBuffer);
+		break;
+	case TOGGLE_OUT_B_PIN:
+		HAL_GPIO_TogglePin(gap_wire[B].out_port, gap_wire[B].out_pin);
+		GPIO_PinState state = HAL_GPIO_ReadPin(gap_wire[B].out_port,
+				gap_wire[B].out_pin);
+		snprintf(rxBuffer, sizeof(rxBuffer),
+				"[DEBUG] TOGGLING B OUT PIN -> %s\n",
+				state == GPIO_PIN_SET ? "HIGH" : "LOW");
+		UartRespond(rxBuffer);
 		break;
 	case DEBUG_R_ON:
 		UartRespond("[DEBUG] DEBUG-R-ON COMMAND RECEIVED");
