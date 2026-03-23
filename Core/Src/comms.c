@@ -1,4 +1,5 @@
 #include "comms.h"
+#include "main.h"
 
 typedef struct{
 	uint8_t data[UART_RX_BUFFER_SIZE];
@@ -98,6 +99,8 @@ CommandType ParseCommand(uint8_t *buf, uint16_t len) {
 		result.cmd = TOGGLE_IN_RELAYS;
 	else if (strcmp(cmd, "CMD:TOGGLE_OUT_RELAYS") == 0)
 		result.cmd = TOGGLE_OUT_RELAYS;
+	else if (strcmp(cmd, "CMD:TOGGLE_VCC") == 0)
+			result.cmd = TOGGLE_VCC;
 
 	// --- Debug LEDs ---
 	else if (strcmp(cmd, "CMD:DEBUG_R_ON") == 0)
@@ -142,15 +145,27 @@ void ProcessCommand(CommandType cmd)
 		break;
 	case CMD_PRESSURE_T_START:
 		break;
-	case AL_START:
+	case CMD_FLOW_CAL_START:
 		break;
 	case CMD_OPEN_TEMP_SOL_W:
+		UartRespond("[DEBUG] OPENING WATER SOL FOR 2s");
+		HAL_GPIO_WritePin(W_SOL_EN_GPIO_Port, W_SOL_EN_Pin, GPIO_PIN_SET);
+		osDelay(pdMS_TO_TICKS(2000));
+		HAL_GPIO_WritePin(W_SOL_EN_GPIO_Port, W_SOL_EN_Pin, GPIO_PIN_RESET);
 		break;
 	case CMD_OPEN_TEMP_SOL_A:
+		UartRespond("[DEBUG] OPENING AIR SOL FOR 2s");
+		HAL_GPIO_WritePin(A_SOL_EN_GPIO_Port, A_SOL_EN_Pin, GPIO_PIN_SET);
+		osDelay(pdMS_TO_TICKS(2000));
+		HAL_GPIO_WritePin(A_SOL_EN_GPIO_Port, A_SOL_EN_Pin, GPIO_PIN_RESET);
 		break;
 	case CMD_OPEN_SOL_D:
+		UartRespond("[DEBUG] OPENING DRAIN SOL");
+		HAL_GPIO_WritePin(A_SOL_EN_GPIO_Port, A_SOL_EN_Pin, GPIO_PIN_SET);
 		break;
 	case CMD_CLOSE_SOL_D:
+		UartRespond("[DEBUG] CLOSING DRAIN SOL");
+		HAL_GPIO_WritePin(A_SOL_EN_GPIO_Port, A_SOL_EN_Pin, GPIO_PIN_RESET);
 		break;
 	case CMD_RESTART_FM_COUNTER:
 		break;
@@ -167,26 +182,46 @@ void ProcessCommand(CommandType cmd)
 	case CMD_REPORT_PRESSURE_VALUES:
 		break;
 	case TOGGLE_IN_RELAYS:
+		UartRespond("[DEBUG] TOGGLING GAP IN RELAY");
+		HAL_GPIO_TogglePin(CONT_I_COMMS_RLY_GPIO_Port, CONT_I_COMMS_RLY_Pin);
 		break;
 	case TOGGLE_OUT_RELAYS:
+		UartRespond("[DEBUG] TOGGLING GAP OUT RELAYS");
+		HAL_GPIO_TogglePin(CONT_O_PWR_RLY_GPIO_Port, CONT_O_PWR_RLY_Pin);
+		HAL_GPIO_TogglePin(CONT_O_GND_RLY_GPIO_Port, CONT_O_GND_RLY_Pin);
+		HAL_GPIO_TogglePin(CONT_O_A_RLY_GPIO_Port, CONT_O_A_RLY_Pin);
+		HAL_GPIO_TogglePin(CONT_O_B_RLY_GPIO_Port, CONT_O_B_RLY_Pin);
+		break;
+	case TOGGLE_VCC:
+		UartRespond("[DEBUG] TOGGLING VCC");
+		HAL_GPIO_TogglePin(VCC_GPIO_Port, VCC_Pin);
 		break;
 	case DEBUG_R_ON:
 		UartRespond("[DEBUG] DEBUG-R-ON COMMAND RECEIVED");
+		HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_SET);
 		break;
 	case DEBUG_R_OFF:
 		UartRespond("[DEBUG] DEBUG-R-OFF COMMAND RECEIVED");
+		HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET);
 		break;
 	case DEBUG_G_ON:
+		UartRespond("[DEBUG] DEBUG-G-ON COMMAND RECEIVED");
+		HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_SET);
 		break;
 	case DEBUG_G_OFF:
+		UartRespond("[DEBUG] DEBUG-G-OFF COMMAND RECEIVED");
+		HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_RESET);
 		break;
 	case DEBUG_B_ON:
+		UartRespond("[DEBUG] DEBUG-B-ON COMMAND RECEIVED");
+		HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_SET);
 		break;
 	case DEBUG_B_OFF:
+		UartRespond("[DEBUG] DEBUG-B-OFF COMMAND RECEIVED");
+		HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_RESET);
 		break;
 	default:
 		UartRespond("[ERROR] BROKEN UART COMMAND HANDLING");
 		break;
-
 	}
 }
