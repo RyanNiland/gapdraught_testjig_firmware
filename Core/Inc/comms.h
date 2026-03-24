@@ -3,6 +3,7 @@
 #define __COMMS_H
 
 #include <stdint.h>
+#include "cmsis_os.h"
 
 #define UART_RX_BUFFER_SIZE  64
 #define UART_TX_BUFFER_SIZE  128
@@ -45,7 +46,13 @@ typedef enum {
 	DEBUG_B_OFF
 } CommandType;
 
+typedef struct{
+	uint8_t data[UART_RX_BUFFER_SIZE];
+	uint16_t len;
+} RawMessage_t;
 
+void StartCommsTask(void *argument);
+osStatus_t UartRespond(const char *msg);
 
 
 #endif /* __COMMS_H */

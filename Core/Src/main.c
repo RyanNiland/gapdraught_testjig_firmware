@@ -22,12 +22,15 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "comms.h"
+#include "sensors.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
+typedef StaticTask_t osStaticThreadDef_t;
+typedef StaticSemaphore_t osStaticMutexDef_t;
 /* USER CODE BEGIN PTD */
-
+typedef StaticQueue_t osStaticMessageQDef_t;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -45,15 +48,72 @@ ADC_HandleTypeDef hadc1;
 
 UART_HandleTypeDef huart1;
 
-/* Definitions for defaultTask */
-osThreadId_t defaultTaskHandle;
-const osThreadAttr_t defaultTask_attributes = {
-  .name = "defaultTask",
+/* Definitions for CommsTask */
+osThreadId_t CommsTaskHandle;
+uint32_t CommsTaskBuffer[ 256 ];
+osStaticThreadDef_t CommsTaskControlBlock;
+const osThreadAttr_t CommsTask_attributes = {
+  .name = "CommsTask",
+  .stack_mem = &CommsTaskBuffer[0],
+  .stack_size = sizeof(CommsTaskBuffer),
+  .cb_mem = &CommsTaskControlBlock,
+  .cb_size = sizeof(CommsTaskControlBlock),
+  .priority = (osPriority_t) osPriorityAboveNormal1,
+};
+/* Definitions for HeartbeatTask */
+osThreadId_t HeartbeatTaskHandle;
+uint32_t HeartbeatTaskBuffer[ 128 ];
+osStaticThreadDef_t HeartbeatTaskControlBlock;
+const osThreadAttr_t HeartbeatTask_attributes = {
+  .name = "HeartbeatTask",
+  .stack_mem = &HeartbeatTaskBuffer[0],
+  .stack_size = sizeof(HeartbeatTaskBuffer),
+  .cb_mem = &HeartbeatTaskControlBlock,
+  .cb_size = sizeof(HeartbeatTaskControlBlock),
   .priority = (osPriority_t) osPriorityNormal,
-  .stack_size = 128 * 4
+};
+/* Definitions for PressureTask */
+osThreadId_t PressureTaskHandle;
+uint32_t PressureTaskBuffer[ 128 ];
+osStaticThreadDef_t PressureTaskControlBlock;
+const osThreadAttr_t PressureTask_attributes = {
+  .name = "PressureTask",
+  .stack_mem = &PressureTaskBuffer[0],
+  .stack_size = sizeof(PressureTaskBuffer),
+  .cb_mem = &PressureTaskControlBlock,
+  .cb_size = sizeof(PressureTaskControlBlock),
+  .priority = (osPriority_t) osPriorityNormal7,
+};
+/* Definitions for uartTxMutex */
+osMutexId_t uartTxMutexHandle;
+osStaticMutexDef_t uartTxMutexControlBlock;
+const osMutexAttr_t uartTxMutex_attributes = {
+  .name = "uartTxMutex",
+  .cb_mem = &uartTxMutexControlBlock,
+  .cb_size = sizeof(uartTxMutexControlBlock),
 };
 /* USER CODE BEGIN PV */
+osMessageQueueId_t pressureResultQueueHandle;
+uint8_t pressureResultQueueBuffer[2 * sizeof(PressureResult_t)];
+osStaticMessageQDef_t pressureResultQueueControlBlock;
+const osMessageQueueAttr_t pressureResultQueue_attributes = {
+  .name = "pressureResultQueue",
+  .cb_mem = &pressureResultQueueControlBlock,
+  .cb_size = sizeof(pressureResultQueueControlBlock),
+  .mq_mem = &pressureResultQueueBuffer,
+  .mq_size = sizeof(pressureResultQueueBuffer)
+};
 
+osMessageQueueId_t rawMsgQueueHandle;
+uint8_t rawMsgQueueBuffer[2 * sizeof(RawMessage_t)];
+osStaticMessageQDef_t rawMsgQueueControlBlock;
+const osMessageQueueAttr_t rawMsgQueue_attributes = {
+  .name = "rawMsgQueue",
+  .cb_mem = &rawMsgQueueControlBlock,
+  .cb_size = sizeof(rawMsgQueueControlBlock),
+  .mq_mem = &rawMsgQueueBuffer,
+  .mq_size = sizeof(rawMsgQueueBuffer)
+};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -61,7 +121,9 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_USART1_UART_Init(void);
-void StartDefaultTask(void *argument);
+void StartCommsTask(void *argument);
+void StartHeartbeatTask(void *argument);
+void StartPressureTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -109,6 +171,9 @@ int main(void)
 
   /* Init scheduler */
   osKernelInitialize();
+  /* Create the mutex(es) */
+  /* creation of uartTxMutex */
+  uartTxMutexHandle = osMutexNew(&uartTxMutex_attributes);
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
@@ -124,14 +189,23 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
+  pressureResultQueueHandle= osMessageQueueNew(2, sizeof(PressureResult_t), &pressureResultQueue_attributes);
+  rawMsgQueueHandle = osMessageQueueNew(2, sizeof(RawMessage_t), &rawMsgQueue_attributes);
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  /* creation of defaultTask */
-  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+  /* creation of CommsTask */
+  CommsTaskHandle = osThreadNew(StartCommsTask, NULL, &CommsTask_attributes);
+
+  /* creation of HeartbeatTask */
+  HeartbeatTaskHandle = osThreadNew(StartHeartbeatTask, NULL, &HeartbeatTask_attributes);
+
+  /* creation of PressureTask */
+  PressureTaskHandle = osThreadNew(StartPressureTask, NULL, &PressureTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
+
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
@@ -410,14 +484,14 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE END 4 */
 
-/* USER CODE BEGIN Header_StartDefaultTask */
+/* USER CODE BEGIN Header_StartCommsTask */
 /**
-  * @brief  Function implementing the defaultTask thread.
+  * @brief  Function implementing the CommsTask thread.
   * @param  argument: Not used
   * @retval None
   */
-/* USER CODE END Header_StartDefaultTask */
-void StartDefaultTask(void *argument)
+/* USER CODE END Header_StartCommsTask */
+__weak void StartCommsTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
@@ -426,6 +500,43 @@ void StartDefaultTask(void *argument)
     osDelay(1);
   }
   /* USER CODE END 5 */
+}
+
+/* USER CODE BEGIN Header_StartHeartbeatTask */
+/**
+* @brief Function implementing the HeartbeatTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartHeartbeatTask */
+__weak void StartHeartbeatTask(void *argument)
+{
+  /* USER CODE BEGIN StartHeartbeatTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(pdMS_TO_TICKS(1000));
+    HAL_GPIO_TogglePin(HEARTBEAT_LED_GPIO_Port, HEARTBEAT_LED_Pin);
+  }
+  /* USER CODE END StartHeartbeatTask */
+}
+
+/* USER CODE BEGIN Header_StartPressureTask */
+/**
+* @brief Function implementing the PressureTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartPressureTask */
+__weak void StartPressureTask(void *argument)
+{
+  /* USER CODE BEGIN StartPressureTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartPressureTask */
 }
 
 /**

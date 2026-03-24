@@ -31,7 +31,7 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "cmsis_os.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -117,7 +117,15 @@ void Error_Handler(void);
 #define A_SOL_EN_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
+extern ADC_HandleTypeDef hadc1;
+extern UART_HandleTypeDef huart1;
 
+extern osMessageQueueId_t pressureResultQueueHandle;
+extern osMessageQueueId_t rawMsgQueueHandle;
+
+extern osMutexId_t uartTxMutexHandle;
+
+extern osThreadId_t PressureTaskHandle;
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

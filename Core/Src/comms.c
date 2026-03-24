@@ -1,14 +1,18 @@
+
 #include "comms.h"
 #include "main.h"
 #include "cont_test.h"
+#include "sensors.h"
+#include <string.h>
+#include "cmsis_os.h"
+#include <stdio.h>
 
-typedef struct{
-	uint8_t data[UART_RX_BUFFER_SIZE];
-	uint_t len;
-} RawMessage_t;
 
 uint8_t rxBuffer[UART_RX_BUFFER_SIZE];
-char txBuffer[UART_TX_BUFFER_SIZE];
+
+
+CommandType ParseCommand(uint8_t *buf, uint16_t len);
+void ProcessCommand(CommandType cmd);
 
 
 void StartCommsTask(void *argument) {
@@ -19,15 +23,15 @@ void StartCommsTask(void *argument) {
 
 	for (;;) {
 
-		if (osMessageQUeueGet(rawMsgQueueHandle, &msg, NULL, portMAX_DELAY)
+		if (osMessageQueueGet(rawMsgQueueHandle, &msg, 0U, portMAX_DELAY)
 				== osOK) {
-			CommandType cmd = ParseCommand(rxBuffer, Size);
+			CommandType cmd = ParseCommand(msg.data, msg.len);
 			ProcessCommand(cmd);
 		}
 	}
 }
 
-void HAL_UARTEx_RxEventCallback(UART_HANDLE_TypeDef *huart, uint16_t Size) {
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
 
 	if (huart->Instance == USART1) {
 
@@ -35,9 +39,8 @@ void HAL_UARTEx_RxEventCallback(UART_HANDLE_TypeDef *huart, uint16_t Size) {
 		msg.len = (Size < UART_RX_BUFFER_SIZE) ? Size : UART_RX_BUFFER_SIZE;
 		memcpy(msg.data, rxBuffer, msg.len);
 
-		BaseType_t xHigherPriorityTastWoken = pdFalse;
-		osMessageQueuePutFromISR(rawMsgQueueHandle, &msg, 0,
-				&xHigherPriorityTaskWoken);
+		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+		osMessageQueuePut(rawMsgQueueHandle, &msg, 0U, 0U);
 
 		HAL_UARTEx_ReceiveToIdle_DMA(&huart1, rxBuffer, sizeof(rxBuffer));
 		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
@@ -62,71 +65,71 @@ CommandType ParseCommand(uint8_t *buf, uint16_t len) {
 
 	// --- Test Sequences ---
 	if (strcmp(cmd, "CMD:CONT_T_START") == 0)
-		result.cmd = CMD_CONT_T_START;
+		result = CMD_CONT_T_START;
 	else if (strcmp(cmd, "CMD:PRESSURE_T_START") == 0)
-		result.cmd = CMD_PRESSURE_T_START;
+		result = CMD_PRESSURE_T_START;
 	else if (strcmp(cmd, "CMD:FLOW_CAL_START") == 0)
-		result.cmd = CMD_FLOW_CAL_START;
+		result = CMD_FLOW_CAL_START;
 
 	// --- Solenoids ---
 	else if (strcmp(cmd, "CMD:OPEN_TEMP_SOL_W") == 0)
-		result.cmd = CMD_OPEN_TEMP_SOL_W;
+		result = CMD_OPEN_TEMP_SOL_W;
 	else if (strcmp(cmd, "CMD:OPEN_TEMP_SOL_A") == 0)
-		result.cmd = CMD_OPEN_TEMP_SOL_A;
+		result = CMD_OPEN_TEMP_SOL_A;
 	else if (strcmp(cmd, "CMD:OPEN_SOL_D") == 0)
-		result.cmd = CMD_OPEN_SOL_D;
+		result = CMD_OPEN_SOL_D;
 	else if (strcmp(cmd, "CMD:CLOSE_SOL_D") == 0)
-		result.cmd = CMD_CLOSE_SOL_D;
+		result = CMD_CLOSE_SOL_D;
 
 	// --- Flow Meter Counter ---
 	else if (strcmp(cmd, "CMD:RESTART_FM_COUNTER") == 0)
-		result.cmd = CMD_RESTART_FM_COUNTER;
+		result = CMD_RESTART_FM_COUNTER;
 	else if (strcmp(cmd, "CMD:ENABLE_FM_COUNTER") == 0)
-		result.cmd = CMD_ENABLE_FM_COUNTER;
+		result = CMD_ENABLE_FM_COUNTER;
 	else if (strcmp(cmd, "CMD:DISABLE_FM_COUNTER") == 0)
-		result.cmd = CMD_DISABLE_FM_COUNTER;
+		result = CMD_DISABLE_FM_COUNTER;
 	else if (strcmp(cmd, "CMD:REPORT_FM_COUNTER") == 0)
-		result.cmd = CMD_REPORT_FM_COUNTER;
+		result = CMD_REPORT_FM_COUNTER;
 
 	// --- Pressure ADC ---
 	else if (strcmp(cmd, "CMD:ENABLE_PADC") == 0)
-		result.cmd = CMD_ENABLE_PADC;
+		result = CMD_ENABLE_PADC;
 	else if (strcmp(cmd, "CMD:DISABLE_PADC") == 0)
-		result.cmd = CMD_DISABLE_PADC;
+		result = CMD_DISABLE_PADC;
 	else if (strcmp(cmd, "CMD:REPORT_PRESSURE_VALUES") == 0)
-		result.cmd = CMD_REPORT_PRESSURE_VALUES;
+		result = CMD_REPORT_PRESSURE_VALUES;
 
 	// --- Relays ---
 	else if (strcmp(cmd, "CMD:TOGGLE_IN_RELAYS") == 0)
-		result.cmd = TOGGLE_IN_RELAYS;
+		result = TOGGLE_IN_RELAYS;
 	else if (strcmp(cmd, "CMD:TOGGLE_OUT_RELAYS") == 0)
-		result.cmd = TOGGLE_OUT_RELAYS;
+		result = TOGGLE_OUT_RELAYS;
 	else if (strcmp(cmd, "CMD:TOGGLE_VCC") == 0)
-			result.cmd = TOGGLE_VCC;
+			result = TOGGLE_VCC;
 	else if (strcmp(cmd, "CMD:READ_IN_PINS") == 0)
-		result.cmd = READ_IN_PINS;
-	else if (strcmp(cmd, "CMD:READ_IN_PINS") == 0)
-		result.cmd = TOGGLE_OUT_PWR_PIN;
-	else if (strcmp(cmd, "CMD:TOGGLE_OUT_PWR_PIN") == 0)
-		result.cmd = TOGGLE_OUT_GND_PIN;
+		result = READ_IN_PINS;
+	else if (strcmp(cmd, "CMD:TOGGLE_OUT_POWER_PIN") == 0)
+		result = TOGGLE_OUT_PWR_PIN;
+	else if (strcmp(cmd, "CMD:TOGGLE_OUT_GND_PIN") == 0)
+		result = TOGGLE_OUT_GND_PIN;
 	else if (strcmp(cmd, "CMD:TOGGLE_OUT_A_PIN") == 0)
-		result.cmd = TOGGLE_OUT_A_PIN;
+		result = TOGGLE_OUT_A_PIN;
 	else if (strcmp(cmd, "CMD:TOGGLE_OUT_B_PIN") == 0)
-		result.cmd = TOGGLE_OUT_B_PIN;
+		result = TOGGLE_OUT_B_PIN;
 
 	// --- Debug LEDs ---
 	else if (strcmp(cmd, "CMD:DEBUG_R_ON") == 0)
-		result.cmd = DEBUG_R_ON;
+		result = DEBUG_R_ON;
 	else if (strcmp(cmd, "CMD:DEBUG_R_OFF") == 0)
-		result.cmd = DEBUG_R_OFF;
+		result = DEBUG_R_OFF;
 	else if (strcmp(cmd, "CMD:DEBUG_G_ON") == 0)
-		result.cmd = DEBUG_G_ON;
+		result = DEBUG_G_ON;
 	else if (strcmp(cmd, "CMD:DEBUG_G_OFF") == 0)
-		result.cmd = DEBUG_G_OFF;
+		result = DEBUG_G_OFF;
 	else if (strcmp(cmd, "CMD:DEBUG_B_ON") == 0)
-		result.cmd = DEBUG_B_ON;
+		result = DEBUG_B_ON;
 	else if (strcmp(cmd, "CMD:DEBUG_B_OFF") == 0)
-		result.cmd = DEBUG_B_OFF;
+		result = DEBUG_B_OFF;
 
 	return result;
 
@@ -146,7 +149,8 @@ osStatus_t UartRespond(const char *msg)
 
 void ProcessCommand(CommandType cmd)
 {
-	char txBuf[UART_TX_BUFFER_SIZE];
+	char txBuffer[UART_TX_BUFFER_SIZE];
+	GPIO_PinState pin_level;
 
 	switch(cmd)
 	{
@@ -156,6 +160,8 @@ void ProcessCommand(CommandType cmd)
 	case CMD_CONT_T_START:
 		break;
 	case CMD_PRESSURE_T_START:
+		UartRespond("[DEBUG] STARTING PRESSURE TEST\n");
+		osThreadFlagsSet(PressureTaskHandle, 0x0001);
 		break;
 	case CMD_FLOW_CAL_START:
 		break;
@@ -192,6 +198,18 @@ void ProcessCommand(CommandType cmd)
 	case CMD_DISABLE_PADC:
 		break;
 	case CMD_REPORT_PRESSURE_VALUES:
+
+#if PRESSURE_DEBUG_MODE
+		PressureResult_t result;
+		if (osMessageQueueGet(pressureResultQueueHandle, &result, NULL, 0) == osOK){
+			for(int i = 0; i < TOTAL_SAMPLES; i++){
+				snprintf(txBuffer, sizeof(txBuffer), "[RESULT] SAMPLE_%d:%lu\n",
+						i, (unsigned long) result.samples[i]);
+				UartRespond(txBuffer);
+			}
+		}
+#endif
+
 		break;
 	case TOGGLE_IN_RELAYS:
 		UartRespond("[DEBUG] TOGGLING GAP IN RELAY\n");
@@ -199,7 +217,7 @@ void ProcessCommand(CommandType cmd)
 		break;
 	case TOGGLE_OUT_RELAYS:
 		UartRespond("[DEBUG] TOGGLING GAP OUT RELAYS\n");
-		HAL_GPIO_TogglePin(gap_wire[PWR].out_relay_port, gap_wire[PWR].out_relay_pin);
+		HAL_GPIO_TogglePin(gap_wire[POWER].out_relay_port, gap_wire[POWER].out_relay_pin);
 		HAL_GPIO_TogglePin(gap_wire[GND].out_relay_port, gap_wire[GND].out_relay_pin);
 		HAL_GPIO_TogglePin(gap_wire[A].out_relay_port, gap_wire[A].out_relay_pin);
 		HAL_GPIO_TogglePin(gap_wire[B].out_relay_port, gap_wire[B].out_relay_pin);
@@ -209,50 +227,49 @@ void ProcessCommand(CommandType cmd)
 		HAL_GPIO_TogglePin(VCC_GPIO_Port, VCC_Pin);
 		break;
 	case READ_IN_PINS:
-		GPIO_PinState pin_level;
 		for(int i = 0; i < GAP_WIRE_NUMBER; i++){
 			pin_level = HAL_GPIO_ReadPin(gap_wire[i].in_port, gap_wire[i].in_pin);
 			snprintf(txBuffer, sizeof(txBuffer), "PIN:%s STATE:%s\n",
 					gap_wire[i].name,
-					state == GPIO_PIN_SET ? "HIGH" : "LOW");
+					pin_level == GPIO_PIN_SET ? "HIGH" : "LOW");
 			UartRespond(txBuffer);
 			}
 			break;
 	case TOGGLE_OUT_PWR_PIN:
-		HAL_GPIO_TogglePin(gap_wire[PWR].out_port, gap_wire[PWR].out_pin);
-		GPIO_PinState state = HAL_GPIO_ReadPin(gap_wire[PWR].out_port,
-				gap_wire[PWR].out_pin);
-		snprintf(rxBuffer, sizeof(rxBuffer),
-				"[DEBUG] TOGGLING PWR OUT PIN -> %s\n",
-				state == GPIO_PIN_SET ? "HIGH" : "LOW");
-		UartRespond(rxBuffer);
+		HAL_GPIO_TogglePin(gap_wire[POWER].out_port, gap_wire[POWER].out_pin);
+		pin_level = HAL_GPIO_ReadPin(gap_wire[POWER].out_port,
+				gap_wire[POWER].out_pin);
+		snprintf(txBuffer, sizeof(txBuffer),
+				"[DEBUG] TOGGLING POWER OUT PIN -> %s\n",
+				pin_level == GPIO_PIN_SET ? "HIGH" : "LOW");
+		UartRespond(txBuffer);
 		break;
 	case TOGGLE_OUT_GND_PIN:
 		HAL_GPIO_TogglePin(gap_wire[GND].out_port, gap_wire[GND].out_pin);
-		GPIO_PinState state = HAL_GPIO_ReadPin(gap_wire[GND].out_port,
+		pin_level = HAL_GPIO_ReadPin(gap_wire[GND].out_port,
 				gap_wire[GND].out_pin);
-		snprintf(rxBuffer, sizeof(rxBuffer),
+		snprintf(txBuffer, sizeof(txBuffer),
 				"[DEBUG] TOGGLING GND OUT PIN -> %s\n",
-				state == GPIO_PIN_SET ? "HIGH" : "LOW");
-		UartRespond(rxBuffer);
+				pin_level == GPIO_PIN_SET ? "HIGH" : "LOW");
+		UartRespond(txBuffer);
 		break;
 	case TOGGLE_OUT_A_PIN:
 		HAL_GPIO_TogglePin(gap_wire[A].out_port, gap_wire[A].out_pin);
-		GPIO_PinState state = HAL_GPIO_ReadPin(gap_wire[A].out_port,
+		pin_level = HAL_GPIO_ReadPin(gap_wire[A].out_port,
 				gap_wire[A].out_pin);
-		snprintf(rxBuffer, sizeof(rxBuffer),
+		snprintf(txBuffer, sizeof(txBuffer),
 				"[DEBUG] TOGGLING A OUT PIN -> %s\n",
-				state == GPIO_PIN_SET ? "HIGH" : "LOW");
-		UartRespond(rxBuffer);
+				pin_level == GPIO_PIN_SET ? "HIGH" : "LOW");
+		UartRespond(txBuffer);
 		break;
 	case TOGGLE_OUT_B_PIN:
 		HAL_GPIO_TogglePin(gap_wire[B].out_port, gap_wire[B].out_pin);
-		GPIO_PinState state = HAL_GPIO_ReadPin(gap_wire[B].out_port,
+		pin_level = HAL_GPIO_ReadPin(gap_wire[B].out_port,
 				gap_wire[B].out_pin);
-		snprintf(rxBuffer, sizeof(rxBuffer),
+		snprintf(txBuffer, sizeof(txBuffer),
 				"[DEBUG] TOGGLING B OUT PIN -> %s\n",
-				state == GPIO_PIN_SET ? "HIGH" : "LOW");
-		UartRespond(rxBuffer);
+				pin_level == GPIO_PIN_SET ? "HIGH" : "LOW");
+		UartRespond(txBuffer);
 		break;
 	case DEBUG_R_ON:
 		UartRespond("[DEBUG] DEBUG-R-ON COMMAND RECEIVED");
