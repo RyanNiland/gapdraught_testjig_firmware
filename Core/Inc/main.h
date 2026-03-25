@@ -117,7 +117,11 @@ void Error_Handler(void);
 #define A_SOL_EN_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
+extern ADC_HandleTypeDef hadc1;
+extern UART_HandleTypeDef huart1;
 
+
+//extern uint32_t last_pressure_sample;
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
