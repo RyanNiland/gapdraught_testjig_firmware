@@ -36,7 +36,14 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-
+typedef enum{
+	IDLE_COMMS,
+	PRESSURE_TEST,
+	CONT_TEST,
+	FLOW_CAL,
+	PASS,
+	FAIL,
+} States_t;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -120,7 +127,7 @@ void Error_Handler(void);
 extern ADC_HandleTypeDef hadc1;
 extern UART_HandleTypeDef huart1;
 
-
+extern States_t state;
 //extern uint32_t last_pressure_sample;
 /* USER CODE END Private defines */
 

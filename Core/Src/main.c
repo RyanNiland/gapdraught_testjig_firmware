@@ -27,10 +27,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-typedef enum{
-	IDLE_COMMS,
-	PRESSURE_TEST,
-} States_t;
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -335,13 +332,20 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : CONT_O_A_RLY_Pin CONT_A_O_Pin CONT_B_O_Pin CONT_O_B_RLY_Pin
-                           CONT_GND_O_Pin CONT_O_GND_RLY_Pin CONT_PWR_O_Pin VLV_POL_CTRL_Pin
+  /*Configure GPIO pins : CONT_O_A_RLY_Pin CONT_O_B_RLY_Pin CONT_O_GND_RLY_Pin VLV_POL_CTRL_Pin
                            W_SOL_EN_Pin A_SOL_EN_Pin */
-  GPIO_InitStruct.Pin = CONT_O_A_RLY_Pin|CONT_A_O_Pin|CONT_B_O_Pin|CONT_O_B_RLY_Pin
-                          |CONT_GND_O_Pin|CONT_O_GND_RLY_Pin|CONT_PWR_O_Pin|VLV_POL_CTRL_Pin
+  GPIO_InitStruct.Pin = CONT_O_A_RLY_Pin|CONT_O_B_RLY_Pin|CONT_O_GND_RLY_Pin|VLV_POL_CTRL_Pin
                           |W_SOL_EN_Pin|A_SOL_EN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : CONT_A_O_Pin CONT_B_O_Pin CONT_GND_O_Pin CONT_PWR_O_Pin
+                           LED_G_Pin LED_R_Pin LED_B_Pin VLV_PWR_CTRL_Pin */
+  GPIO_InitStruct.Pin = CONT_A_O_Pin|CONT_B_O_Pin|CONT_GND_O_Pin|CONT_PWR_O_Pin
+                          |LED_G_Pin|LED_R_Pin|LED_B_Pin|VLV_PWR_CTRL_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
@@ -358,13 +362,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(USER_BTN_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : LED_G_Pin LED_R_Pin LED_B_Pin VLV_PWR_CTRL_Pin */
-  GPIO_InitStruct.Pin = LED_G_Pin|LED_R_Pin|LED_B_Pin|VLV_PWR_CTRL_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
@@ -390,8 +387,25 @@ void DebugLEDs(void)
 			case IDLE_COMMS:
 				break;
 			case PRESSURE_TEST:
+				//Magenta
 				HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_SET);
 				HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_SET);
+				break;
+			case CONT_TEST:
+				//Yellow
+				HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_SET);
+				HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_SET);
+				break;
+			case FLOW_CAL:
+				//Cyan
+				HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_SET);
+				HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_SET);
+				break;
+			case PASS:
+				HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_SET);
+				break;
+			case FAIL:
+				HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_SET);
 				break;
 			}
 		}else{

@@ -148,9 +148,8 @@ void ProcessCommand(CommandType cmd)
 		break;
 	case CMD_PRESSURE_T_START:
 		UartRespond("[DEBUG] STARTING PRESSURE TEST\n");
+		state = PRESSURE_TEST;
 		pressure_sample_index = -2;
-
-		//START PRESSURE TEST - SET STATE
 		break;
 	case CMD_FLOW_CAL_START:
 		break;
