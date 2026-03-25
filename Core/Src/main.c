@@ -58,11 +58,11 @@ const osThreadAttr_t CommsTask_attributes = {
   .stack_size = sizeof(CommsTaskBuffer),
   .cb_mem = &CommsTaskControlBlock,
   .cb_size = sizeof(CommsTaskControlBlock),
-  .priority = (osPriority_t) osPriorityAboveNormal1,
+  .priority = (osPriority_t) osPriorityLow3,
 };
 /* Definitions for HeartbeatTask */
 osThreadId_t HeartbeatTaskHandle;
-uint32_t HeartbeatTaskBuffer[ 128 ];
+uint32_t HeartbeatTaskBuffer[ 64 ];
 osStaticThreadDef_t HeartbeatTaskControlBlock;
 const osThreadAttr_t HeartbeatTask_attributes = {
   .name = "HeartbeatTask",
@@ -70,7 +70,7 @@ const osThreadAttr_t HeartbeatTask_attributes = {
   .stack_size = sizeof(HeartbeatTaskBuffer),
   .cb_mem = &HeartbeatTaskControlBlock,
   .cb_size = sizeof(HeartbeatTaskControlBlock),
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityLow1,
 };
 /* Definitions for PressureTask */
 osThreadId_t PressureTaskHandle;
@@ -82,7 +82,7 @@ const osThreadAttr_t PressureTask_attributes = {
   .stack_size = sizeof(PressureTaskBuffer),
   .cb_mem = &PressureTaskControlBlock,
   .cb_size = sizeof(PressureTaskControlBlock),
-  .priority = (osPriority_t) osPriorityNormal7,
+  .priority = (osPriority_t) osPriorityLow2,
 };
 /* Definitions for uartTxMutex */
 osMutexId_t uartTxMutexHandle;
