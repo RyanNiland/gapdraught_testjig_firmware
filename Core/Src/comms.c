@@ -66,10 +66,10 @@ CommandType ParseCommand(uint8_t *buf, uint16_t len) {
 		result = CMD_FLOW_CAL_START;
 
 	// --- Solenoids ---
-	else if (strcmp(cmd, "CMD:OPEN_TEMP_SOL_W") == 0)
-		result = CMD_OPEN_TEMP_SOL_W;
-	else if (strcmp(cmd, "CMD:OPEN_TEMP_SOL_A") == 0)
-		result = CMD_OPEN_TEMP_SOL_A;
+	else if (strcmp(cmd, "CMD:TOGGLE_SOL_W") == 0)
+		result = CMD_TOGGLE_SOL_W;
+	else if (strcmp(cmd, "CMD:TOGGLE_SOL_A") == 0)
+		result = CMD_TOGGLE_SOL_A;
 	else if (strcmp(cmd, "CMD:OPEN_SOL_D") == 0)
 		result = CMD_OPEN_SOL_D;
 	else if (strcmp(cmd, "CMD:CLOSE_SOL_D") == 0)
@@ -147,6 +147,8 @@ void ProcessCommand(CommandType cmd)
 		UartRespond("[ERROR] UNKNOWN COMMAND\n");
 		break;
 	case CMD_CONT_T_START:
+		UartRespond("[DEBUG] STARTING CONTINUITY TEST\n");
+		state = CONT_TEST;
 		break;
 	case CMD_PRESSURE_T_START:
 		UartRespond("[DEBUG] STARTING PRESSURE TEST\n");
@@ -154,22 +156,16 @@ void ProcessCommand(CommandType cmd)
 		pressure_sample_index = -2;
 		break;
 	case CMD_FLOW_CAL_START:
+		UartRespond("[DEBUG] STARTING FLOW CALIBRATION\n");
+		state = FLOW_CAL;
 		break;
-	case CMD_OPEN_TEMP_SOL_W: //INITIAL TESTING
-		/* Need to Rework
-		UartRespond("[DEBUG] OPENING WATER SOL FOR 2s\n");
-		HAL_GPIO_WritePin(W_SOL_EN_GPIO_Port, W_SOL_EN_Pin, GPIO_PIN_SET);
-		osDelay(pdMS_TO_TICKS(2000));
-		HAL_GPIO_WritePin(W_SOL_EN_GPIO_Port, W_SOL_EN_Pin, GPIO_PIN_RESET);
-		*/
+	case CMD_TOGGLE_SOL_W: //INITIAL TESTING
+		UartRespond("[DEBUG] TOGGLING WATER SOL\n");
+		HAL_GPIO_TogglePin(W_SOL_EN_GPIO_Port, W_SOL_EN_Pin);
 		break;
-	case CMD_OPEN_TEMP_SOL_A: //INITIAL TESTING
-		/* Need to Rework
-		UartRespond("[DEBUG] OPENING AIR SOL FOR 2s\n");
-		HAL_GPIO_WritePin(A_SOL_EN_GPIO_Port, A_SOL_EN_Pin, GPIO_PIN_SET);
-		osDelay(pdMS_TO_TICKS(2000));
-		HAL_GPIO_WritePin(A_SOL_EN_GPIO_Port, A_SOL_EN_Pin, GPIO_PIN_RESET);
-		*/
+	case CMD_TOGGLE_SOL_A: //INITIAL TESTING
+		UartRespond("[DEBUG] TOGGLING AIR SOL\n");
+		HAL_GPIO_TogglePin(A_SOL_EN_GPIO_Port, A_SOL_EN_Pin);
 		break;
 	case CMD_OPEN_SOL_D: //INITIAL TESTING
 		UartRespond("[DEBUG] OPENING DRAIN SOL\n");

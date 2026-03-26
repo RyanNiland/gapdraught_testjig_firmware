@@ -424,7 +424,7 @@ static void MX_GPIO_Init(void) {
 
 /* USER CODE BEGIN 4 */
 void Heartbeat(void) {
-	if (last_beat - HAL_GetTick() > HEARTBEAT_PERIOD_MS) {
+	if (HAL_GetTick() - last_beat > HEARTBEAT_PERIOD_MS) {
 		HAL_GPIO_TogglePin(HEARTBEAT_LED_GPIO_Port, HEARTBEAT_LED_Pin);
 		last_beat = HAL_GetTick();
 	}
@@ -432,7 +432,7 @@ void Heartbeat(void) {
 }
 
 void DebugLEDs(void) {
-	if (last_flash - HAL_GetTick() >= DEBUG_FLASH_PERIOD_MS) {
+	if (HAL_GetTick() - last_flash >= DEBUG_FLASH_PERIOD_MS) {
 		if (debug_flash_mode) {
 			switch (state) {
 			case IDLE_COMMS:

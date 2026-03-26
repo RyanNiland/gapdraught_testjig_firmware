@@ -7,7 +7,7 @@
 
 uint8_t pressure_sample_index = 0;
 uint32_t last_pressure_sample = 0;
-uint32_t last_solenoid_switch = 0;
+static uint32_t last_solenoid_switch = 0;
 
 PressureResult_t p_result = { 0 };
 
@@ -26,14 +26,16 @@ void PressureTest(void) {
 			last_solenoid_switch = HAL_GetTick();
 		}
 
-		if (pressure_sample_index
-				== -1&& last_solenoid_switch - HAL_GetTick() > PRESSURE_PRIMING_PERIOD) {
+		if ((pressure_sample_index == -1)
+				&& (HAL_GetTick() - last_solenoid_switch
+						> PRESSURE_PRIMING_PERIOD)) {
 			SealSystem();
 			pressure_sample_index = 0;
 		}
 
-		if (pressure_sample_index
-				>= 0&& pressure_sample_index < TOTAL_SAMPLES && last_pressure_sample - HAL_GetTick() >= SAMPLE_RATE_MS) {
+		if ((pressure_sample_index >= 0)
+				&& (pressure_sample_index < TOTAL_SAMPLES)
+				&& (HAL_GetTick() - last_pressure_sample >= SAMPLE_RATE_MS)) {
 
 			uint32_t val = ReadADC();
 			last_pressure_sample = HAL_GetTick();
@@ -66,7 +68,7 @@ void SealSystem(void) {
 	HAL_GPIO_WritePin(A_SOL_EN_GPIO_Port, A_SOL_EN_Pin, GPIO_PIN_RESET);
 }
 
-void DepressuriseSystem(void){
+void DepressuriseSystem(void) {
 	HAL_GPIO_WritePin(D_SOL_EN_GPIO_Port, D_SOL_EN_Pin, GPIO_PIN_SET);
 }
 
