@@ -114,10 +114,6 @@ void Error_Handler(void);
 #define LED_R_GPIO_Port GPIOB
 #define LED_B_Pin GPIO_PIN_5
 #define LED_B_GPIO_Port GPIOB
-#define VLV_PWR_CTRL_Pin GPIO_PIN_6
-#define VLV_PWR_CTRL_GPIO_Port GPIOB
-#define VLV_POL_CTRL_Pin GPIO_PIN_7
-#define VLV_POL_CTRL_GPIO_Port GPIOB
 #define W_SOL_EN_Pin GPIO_PIN_8
 #define W_SOL_EN_GPIO_Port GPIOB
 #define A_SOL_EN_Pin GPIO_PIN_9

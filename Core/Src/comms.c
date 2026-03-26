@@ -1,11 +1,13 @@
 
+#include <pressure_test.h>
 #include "comms.h"
 #include <string.h>
 #include <stdio.h>
 #include "main.h"
 #include "cont_test.h"
-#include "sensors.h"
 #include "stm32g0xx_hal.h"
+
+static UART_HandleTypeDef *_huart = NULL;
 
 RawMessage_t pc_comms = {0};
 uint8_t rxBuffer[UART_RX_BUFFER_SIZE];
@@ -13,9 +15,9 @@ uint8_t rxBuffer[UART_RX_BUFFER_SIZE];
 CommandType ParseCommand(uint8_t *buf, uint16_t len);
 void ProcessCommand(CommandType cmd);
 
-void InitComms(void){
-
-	HAL_UARTEx_ReceiveToIdle_DMA(&huart1, rxBuffer, sizeof(rxBuffer));
+void InitComms(UART_HandleTypeDef *huart){
+	_huart = huart;
+	HAL_UARTEx_ReceiveToIdle_DMA(_huart, rxBuffer, sizeof(rxBuffer));
 	UartRespond("[STATUS] TESTJIG INITIALIZED");
 
 }
@@ -35,7 +37,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
 		pc_comms.len = (Size < UART_RX_BUFFER_SIZE) ? Size : UART_RX_BUFFER_SIZE;
 		memcpy(pc_comms.data, rxBuffer, pc_comms.len);
 
-		HAL_UARTEx_ReceiveToIdle_DMA(&huart1, rxBuffer, sizeof(rxBuffer));
+		HAL_UARTEx_ReceiveToIdle_DMA(_huart, rxBuffer, sizeof(rxBuffer));
 
 	}
 }
@@ -129,7 +131,7 @@ CommandType ParseCommand(uint8_t *buf, uint16_t len) {
 
 HAL_StatusTypeDef UartRespond(const char *msg)
 {
-	return HAL_UART_Transmit(&huart1, (uint8_t *)msg, strlen(msg), HAL_MAX_DELAY);
+	return HAL_UART_Transmit(_huart, (uint8_t *)msg, strlen(msg), HAL_MAX_DELAY);
 
 }
 

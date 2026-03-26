@@ -53,7 +53,7 @@ typedef struct{
 
 //extern RawMessage_t pc_comms;
 
-void InitComms(void);
+void InitComms(UART_HandleTypeDef *huart);
 void RunComms(void);
 HAL_StatusTypeDef UartRespond(const char *msg);
 
