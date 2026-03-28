@@ -9,7 +9,7 @@
 
 static UART_HandleTypeDef *_huart = NULL;
 
-RawMessage_t pc_comms = {0};
+volatile RawMessage_t pc_comms = {0};
 uint8_t rxBuffer[UART_RX_BUFFER_SIZE];
 
 CommandType ParseCommand(uint8_t *buf, uint16_t len);
@@ -23,9 +23,12 @@ void InitComms(UART_HandleTypeDef *huart){
 }
 
 void RunComms(void){
-	if (pc_comms.len > 0) {
-				CommandType cmd = ParseCommand(pc_comms.data, pc_comms.len);
-				pc_comms.len = 0;
+
+	if (pc_comms.ready) {
+				RawMessage_t pc_comms_cpy;
+				memcpy(&pc_comms_cpy, (void*)&pc_comms, sizeof(RawMessage_t));
+				pc_comms.ready = 0;
+				CommandType cmd = ParseCommand(pc_comms_cpy.data, pc_comms_cpy.len);
 				ProcessCommand(cmd);
 			}
 }
@@ -33,13 +36,14 @@ void RunComms(void){
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
 
 	if (huart->Instance == USART1) {
-
-		pc_comms.len = (Size < UART_RX_BUFFER_SIZE) ? Size : UART_RX_BUFFER_SIZE;
-		memcpy(pc_comms.data, rxBuffer, pc_comms.len);
-
-		HAL_UARTEx_ReceiveToIdle_DMA(_huart, rxBuffer, sizeof(rxBuffer));
-
+		if(!pc_comms.ready){
+			uint16_t safe_len = (Size < UART_RX_BUFFER_SIZE) ? Size : UART_RX_BUFFER_SIZE;
+			memcpy((void*)pc_comms.data, rxBuffer, safe_len);
+			pc_comms.len = safe_len;
+			pc_comms.ready = 1;
+		}
 	}
+	HAL_UARTEx_ReceiveToIdle_DMA(_huart, rxBuffer, sizeof(rxBuffer));
 }
 
 CommandType ParseCommand(uint8_t *buf, uint16_t len) {
@@ -153,7 +157,6 @@ void ProcessCommand(CommandType cmd)
 	case CMD_PRESSURE_T_START:
 		UartRespond("[DEBUG] STARTING PRESSURE TEST\n");
 		state = PRESSURE_TEST;
-		pressure_sample_index = -2;
 		break;
 	case CMD_FLOW_CAL_START:
 		UartRespond("[DEBUG] STARTING FLOW CALIBRATION\n");

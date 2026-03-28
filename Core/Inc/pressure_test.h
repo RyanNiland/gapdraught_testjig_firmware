@@ -4,12 +4,13 @@
 #include <stdint.h>
 
 #define PRESSURE_DEBUG_MODE 1
+#define APPLY_EMA_FILTER 1
 
-#define SAMPLE_RATE_MS 100
+#define SAMPLE_RATE_MS 50
 #define TEST_DURATION_MS 5000
 #define TOTAL_SAMPLES (TEST_DURATION_MS/SAMPLE_RATE_MS)
 
-extern uint8_t pressure_sample_index;
+
 
 typedef struct {
 	uint32_t max;

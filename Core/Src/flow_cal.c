@@ -6,7 +6,7 @@
 #define SECOND_POR_VOL_L 350
 //#define TARGET_FR_L_PER_S IDK
 #define MS_TO_US 1000
-#define MIN_FLOW_CHECK_PERIOD_US 100 * MS_TO_US
+#define MIN_FLOW_CHECK_PERIOD_MS 100
 #define TURBINE_FM_PPL 5040
 #define PRIMING_VOL_L 0.5
 #define NR_FLOW_TESTS 2
@@ -57,7 +57,7 @@ static void FlowMeter_Reset(void);
 void FlowMeter_GetResults(FlowResult_t *result);
 static uint32_t get_timestamp(void);
 
-void Flow_Calibration(void) {
+void FlowCalibration(void) {
 	if (state == FLOW_CAL) {
 
 		switch (flow_state) {
@@ -95,7 +95,7 @@ static void PrimeSystem_Start(void) {
 }
 
 static void PrimeSystem_Stop(void) {
-	if (HAL_GetTick() - last_flow_check >= MIN_FLOW_CHECK_PERIOD_US) {
+	if (HAL_GetTick() - last_flow_check >= MIN_FLOW_CHECK_PERIOD_MS) {
 		last_flow_check = HAL_GetTick();
 
 		if (pulse_count > PRIMING_VOL_L * TURBINE_FM_PPL) {
@@ -133,6 +133,7 @@ static void Wait_for_Settle(void) {
 		FlowMeter_Stop();
 		FlowMeter_GetResults(&calibration_data[flow_nr]);
 
+		flow_nr++;
 		if (flow_nr < NR_FLOW_TESTS) {
 			flow_state = READY;
 		} else {
@@ -204,6 +205,7 @@ void FlowMeter_GetResults(FlowResult_t *result) {
 }
 
 void FlowMeter_IC_Callback(TIM_HandleTypeDef *htim) {
+	if (_htim == NULL) return;
 	if (htim->Instance != _htim->Instance)
 		return;
 	if (htim->Channel != HAL_TIM_ACTIVE_CHANNEL_3)
@@ -224,6 +226,7 @@ void FlowMeter_IC_Callback(TIM_HandleTypeDef *htim) {
 void FlowMeter_OVF_Callback(TIM_HandleTypeDef *htim) {
 	if (htim->Instance != _htim->Instance)
 		return;
+	if(!running) return;
 	overflow_count++;
 }
 

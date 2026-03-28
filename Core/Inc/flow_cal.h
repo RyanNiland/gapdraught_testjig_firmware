@@ -5,6 +5,7 @@
 #include "stm32g0xx_hal.h"
 
 void FlowMeter_Init(TIM_HandleTypeDef *htim);
+void FlowCalibration(void);
 
 void FlowMeter_IC_Callback(TIM_HandleTypeDef *htim);
 void FlowMeter_OVF_Callback(TIM_HandleTypeDef *htim);

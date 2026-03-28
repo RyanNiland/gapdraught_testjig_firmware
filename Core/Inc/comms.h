@@ -49,6 +49,7 @@ typedef enum {
 typedef struct{
 	uint8_t data[UART_RX_BUFFER_SIZE];
 	uint16_t len;
+	uint8_t ready;
 } RawMessage_t;
 
 //extern RawMessage_t pc_comms;

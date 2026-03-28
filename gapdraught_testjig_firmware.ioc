@@ -1,9 +1,11 @@
 #MicroXplorer Configuration settings - do not modify
 ADC1.Channel-0\#ChannelRegularConversion=ADC_CHANNEL_0
-ADC1.IPParameters=Rank-0\#ChannelRegularConversion,Channel-0\#ChannelRegularConversion,SamplingTime-0\#ChannelRegularConversion,NbrOfConversionFlag,master,SelectedChannel
+ADC1.IPParameters=Rank-0\#ChannelRegularConversion,Channel-0\#ChannelRegularConversion,SamplingTime-0\#ChannelRegularConversion,NbrOfConversionFlag,master,SelectedChannel,SamplingTimeCommon1,SamplingTimeCommon2
 ADC1.NbrOfConversionFlag=1
 ADC1.Rank-0\#ChannelRegularConversion=1
 ADC1.SamplingTime-0\#ChannelRegularConversion=ADC_SAMPLINGTIME_COMMON_1
+ADC1.SamplingTimeCommon1=ADC_SAMPLETIME_79CYCLES_5
+ADC1.SamplingTimeCommon2=ADC_SAMPLETIME_79CYCLES_5
 ADC1.SelectedChannel=ADC_CHANNEL_0
 ADC1.master=1
 CAD.formats=
@@ -91,7 +93,7 @@ PA2.GPIO_Label=TAG_TX
 PA2.Locked=true
 PA2.Signal=USART2_TX
 PA3.GPIOParameters=GPIO_Label,GPIO_ModeDefaultEXTI
-PA3.GPIO_Label=FLOW_METER_SIG
+PA3.GPIO_Label=FLOW_METER_SIG_OLD
 PA3.GPIO_ModeDefaultEXTI=GPIO_MODE_IT_FALLING
 PA3.Locked=true
 PA3.Signal=GPXTI3

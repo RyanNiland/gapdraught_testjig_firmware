@@ -70,8 +70,8 @@ void Error_Handler(void);
 #define PRESSURE_SIG_GPIO_Port GPIOA
 #define TAG_TX_Pin GPIO_PIN_2
 #define TAG_TX_GPIO_Port GPIOA
-#define FLOW_METER_SIG_Pin GPIO_PIN_3
-#define FLOW_METER_SIG_GPIO_Port GPIOA
+#define FLOW_METER_SIG_OLD_Pin GPIO_PIN_3
+#define FLOW_METER_SIG_OLD_GPIO_Port GPIOA
 #define CONT_PWR_I_Pin GPIO_PIN_4
 #define CONT_PWR_I_GPIO_Port GPIOA
 #define VCC_Pin GPIO_PIN_5
